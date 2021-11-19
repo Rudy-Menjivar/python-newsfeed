@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from app.models import User
+from app.models import User, Post, Comment, Vote
 from app.db import get_db
 import sys
 
@@ -61,3 +61,27 @@ def logout():
   # remove session variables
   session.clear()
   return '', 204
+
+@bp.route('/comments', methods=['POST'])
+def comment():
+  data = request.get_json()
+  db = get_db()
+
+  try:
+  # create a new comment
+    newComment = Comment(
+      comment_text = data['comment_text'],
+      post_id = data['post_id'],
+      user_id = session.get('user_id')
+    )
+
+    db.add(newComment)
+    # perform INSERT to db
+    db.commit()
+  except:
+    print(sys.exc_info()[0])
+    # discard pending commit if it fails
+    db.rollback()
+    return jsonify(message = 'Comment failed'), 500
+  # if the except block doesn't run then create the new comment id
+  return jsonify(id = newComment.id)
